@@ -1,0 +1,136 @@
+.note-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.editor-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
+}
+.editor-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ccc;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-split {
+  padding: 8px 14px;
+  background: #2d3748;
+  color: #e2e8f0;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.btn-split:hover {
+  background: #3d4a5c;
+}
+.btn-split.is-active {
+  background: #2c5282;
+  border-color: #2b6cb0;
+  color: #fff;
+}
+.btn-improve {
+  padding: 8px 14px;
+  background: #2d3748;
+  color: #e2e8f0;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.btn-improve:hover:not(:disabled) {
+  background: #3d4a5c;
+}
+.btn-improve:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.editor-error {
+  padding: 8px 20px;
+  background: rgba(220, 53, 69, 0.15);
+  color: #f8b4b4;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+.btn-save {
+  padding: 8px 16px;
+  background: #0d6efd;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.btn-save:hover {
+  background: #0b5ed7;
+}
+.shortcut-hint {
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  font-weight: normal;
+  background: rgba(255,255,255,0.15);
+  border-radius: 4px;
+}
+.editor-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+.editor-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.note-editor--split .editor-pane {
+  flex: 1;
+  min-width: 120px;
+}
+.editor-split-divider {
+  width: 1px;
+  background: #333;
+  flex-shrink: 0;
+}
+.preview-pane {
+  flex: 1;
+  min-width: 120px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.editor-textarea {
+  flex: 1;
+  margin: 0;
+  padding: 16px 20px;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  border: none;
+  resize: none;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Monaco, monospace;
+  min-height: 0;
+}
+.editor-textarea:focus {
+  outline: none;
+}
+.editor-textarea::placeholder {
+  color: #555;
+}
