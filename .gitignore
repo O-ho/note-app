@@ -3,7 +3,18 @@ dist
 dist-electron
 release
 build
+
+# IDE
 .idea
+
+# 로컬/비공개 문서
+docs/
+AGENT-CONTEXT.md
+
+# env. 로 시작하는 파일 (예: env.local, env.signing)
+env.*
+
+# 기타 로컬·시크릿
 *.local
 .env
 .env.signing
