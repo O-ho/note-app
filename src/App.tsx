@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import type { NoteItem } from '@/vite-env';
-import { NoteList } from './components/NoteList';
-import { NoteEditor } from './components/NoteEditor';
-import { SettingsModal } from './components/SettingsModal';
+import {useCallback, useEffect, useRef, useState} from 'react';
+import type {NoteItem} from '@/vite-env';
+import {NoteList} from './components/NoteList';
+import {NoteEditor} from './components/NoteEditor';
+import {SettingsModal} from './components/SettingsModal';
 import './App.css';
 
 const hasNotesAPI = typeof window !== 'undefined' && window.electronAPI?.notes;
@@ -68,7 +68,9 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    loadList();
+    (async ()=>{
+      await loadList()
+    })()
   }, [loadList]);
 
   useEffect(() => {

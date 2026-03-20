@@ -78,28 +78,48 @@
 }
 .doc-polish-example {
   flex-shrink: 0;
-  padding: 0 20px 10px;
+  padding: 4px 20px 8px;
   border-bottom: 1px solid #2d2d2d;
   font-size: 0.8125rem;
   color: #b0b0b0;
 }
+/* 좌측 정렬 + 커스텀 접기 화살표 */
 .doc-polish-example > summary {
   cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.4em;
   padding: 8px 0 4px;
+  margin: 0;
   font-weight: 600;
   color: #c8e6c9;
-  list-style-position: outside;
+  text-align: left;
+}
+.doc-polish-example > summary::-webkit-details-marker {
+  display: none;
+}
+.doc-polish-example > summary::before {
+  content: '▸';
+  font-size: 0.85em;
+  opacity: 0.9;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+.doc-polish-example[open] > summary::before {
+  transform: rotate(90deg);
 }
 .doc-polish-example-hint {
-  margin: 0 0 10px;
-  line-height: 1.45;
+  margin: 0 0 6px;
+  line-height: 1.4;
   opacity: 0.9;
 }
 .doc-polish-example-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  max-height: min(55vh, 420px);
+  gap: 8px;
+  max-height: min(42vh, 320px);
 }
 @media (max-width: 720px) {
   .doc-polish-example-grid {
@@ -111,9 +131,12 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 .doc-polish-example-label {
+  display: flex;
+  align-items: center;
+  min-height: 1rem;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -121,7 +144,7 @@
 }
 .doc-polish-example-pre {
   margin: 0;
-  padding: 10px;
+  padding: 8px;
   background: #1a1a1a;
   border: 1px solid #333;
   border-radius: 6px;
@@ -131,19 +154,24 @@
   white-space: pre-wrap;
   word-break: break-word;
   overflow: auto;
-  max-height: min(50vh, 380px);
+  max-height: min(38vh, 300px);
 }
 .doc-polish-example-after {
-  padding: 8px 10px;
+  padding: 6px 8px;
   background: #1a1a1a;
   border: 1px solid #2c7a7b;
   border-radius: 6px;
   overflow: auto;
-  max-height: min(50vh, 380px);
+  max-height: min(38vh, 300px);
   font-size: 0.85rem;
 }
 .doc-polish-example-after .markdown-preview {
   font-size: inherit;
+  /* 본문 pre와 패딩 맞춤 */
+  padding: 8px;
+  height: auto;
+  min-height: 0;
+  background: transparent;
 }
 .editor-error {
   padding: 8px 20px;

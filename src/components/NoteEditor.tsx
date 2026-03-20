@@ -81,7 +81,7 @@ export function NoteEditor({
   const [isPolishingDoc, setIsPolishingDoc] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [splitView, setSplitView] = useState(false);
-  const [docPolishExampleOpen, setDocPolishExampleOpen] = useState(true);
+  const [docPolishExampleOpen, setDocPolishExampleOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const selectionRef = useRef<{ start: number; end: number } | null>(null);
 
