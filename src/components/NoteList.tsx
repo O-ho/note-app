@@ -1,4 +1,4 @@
-import type { NoteItem } from '../vite-env.d';
+import type { NoteItem } from '@/vite-env';
 import './NoteList.css';
 
 type Props = {
