@@ -8,6 +8,7 @@ import { app, BrowserWindow } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import fs from 'fs';
 import { buildGeminiReadabilityRequest } from './readabilityPrompt';
+import { buildGeminiDocPolishRequest } from './docPolishPrompt';
 
 function getNotesDir(): string {
   return path.join(app.getPath('userData'), 'notes');
@@ -138,6 +139,35 @@ function registerIpcHandlers() {
     const content = parts?.[0]?.text?.trim();
     if (content == null) throw new Error('API 응답에 내용이 없습니다.');
     return content;
+  });
+
+  ipcMain.handle('ai:polishDeveloperDoc', async (_e: IpcMainInvokeEvent, text: string): Promise<string> => {
+    const apiKey = process.env.GEMINI_API_KEY || readSettings().geminiApiKey;
+    if (!apiKey?.trim()) {
+      throw new Error('설정에서 Gemini API 키를 입력해 주세요.');
+    }
+    const { systemInstruction, contents } = buildGeminiDocPolishRequest(text);
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: systemInstruction,
+        contents,
+        generationConfig: { temperature: 0.25 },
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Gemini API 오류 (${res.status}): ${err}`);
+    }
+    const data = (await res.json()) as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    };
+    const parts = data.candidates?.[0]?.content?.parts;
+    const out = parts?.[0]?.text?.trim();
+    if (out == null) throw new Error('API 응답에 내용이 없습니다.');
+    return out;
   });
 }
 

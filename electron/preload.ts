@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ai: {
     improveReadability: (text: string): Promise<string> =>
       ipcRenderer.invoke('ai:improveReadability', text),
+    polishDeveloperDoc: (text: string): Promise<string> =>
+      ipcRenderer.invoke('ai:polishDeveloperDoc', text),
   },
   app: {
     getSettings: (): Promise<{ geminiApiKey?: string }> => ipcRenderer.invoke('app:getSettings'),

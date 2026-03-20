@@ -14,6 +14,7 @@ declare global {
       };
       ai: {
         improveReadability: (text: string) => Promise<string>;
+        polishDeveloperDoc: (text: string) => Promise<string>;
       };
       app: {
         getSettings: () => Promise<{ geminiApiKey?: string }>;

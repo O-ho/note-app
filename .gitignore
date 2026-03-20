@@ -18,3 +18,5 @@ env.*
 *.local
 .env
 .env.signing
+# .env.signing 과 별개 — 예시 파일도 추적 제외
+.env.signing.example

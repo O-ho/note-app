@@ -1,0 +1,54 @@
+# 맥 없이 Windows용 .exe(NSIS 설치 파일)를 GitHub에서 빌드합니다.
+#
+# 사용법:
+# 1. 이 저장소를 GitHub에 푸시
+# 2. Actions 탭 → "Build Electron (Windows)" → "Run workflow" 수동 실행
+#    또는 main/master 브랜치에 푸시하면 자동 실행
+# 3. 완료 후 해당 실행의 Artifacts에서 zip 다운로드 → 안에 .exe 포함
+#
+# 참고: 코드 서명 없이 빌드됩니다(스마트스크린 경고 가능). 서명은 별도 인증서·시크릿 필요.
+
+name: Build Electron (Windows)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+concurrency:
+  group: electron-win-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (Vite + Electron main)
+        run: npm run build
+
+      - name: Package Windows installer (NSIS)
+        run: npx electron-builder --win --publish never
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: note-app-windows-${{ github.sha }}
+          path: release/*
+          if-no-files-found: error

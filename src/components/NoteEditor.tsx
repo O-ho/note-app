@@ -1,5 +1,6 @@
 import { useState, useRef, useLayoutEffect, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { MarkdownPreview } from './MarkdownPreview';
+import { DOC_POLISH_PREVIEW_AFTER, DOC_POLISH_PREVIEW_BEFORE } from '../docPolishPreview';
 import './NoteEditor.css';
 
 const INDENT = '  ';
@@ -58,13 +59,26 @@ type Props = {
   title: string;
   content: string;
   onChange: (value: string) => void;
-  onSave: () => void;
+  onSave: () => void | Promise<void>;
+  /** 디스크 저장 중(자동·수동·노트 전환 등) */
+  isSaving?: boolean;
   /** Few-shot 기반 가독성 변환 (없으면 버튼 비표시) */
   onImproveReadability?: (text: string) => Promise<string>;
+  /** 개발 문서체 다듬기 (README·API 문서 등, 없으면 버튼 비표시) */
+  onPolishDeveloperDoc?: (text: string) => Promise<string>;
 };
 
-export function NoteEditor({ title, content, onChange, onSave, onImproveReadability }: Props) {
+export function NoteEditor({
+  title,
+  content,
+  onChange,
+  onSave,
+  isSaving = false,
+  onImproveReadability,
+  onPolishDeveloperDoc,
+}: Props) {
   const [isImproving, setIsImproving] = useState(false);
+  const [isPolishingDoc, setIsPolishingDoc] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [splitView, setSplitView] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -212,6 +226,8 @@ export function NoteEditor({ title, content, onChange, onSave, onImproveReadabil
     }
   };
 
+  const aiBusy = isImproving || isPolishingDoc;
+
   const handleImprove = async () => {
     if (!content.trim() || !onImproveReadability) return;
     setError(null);
@@ -223,6 +239,20 @@ export function NoteEditor({ title, content, onChange, onSave, onImproveReadabil
       setError(e instanceof Error ? e.message : '가독성 변환에 실패했습니다.');
     } finally {
       setIsImproving(false);
+    }
+  };
+
+  const handlePolishDoc = async () => {
+    if (!content.trim() || !onPolishDeveloperDoc) return;
+    setError(null);
+    setIsPolishingDoc(true);
+    try {
+      const result = await onPolishDeveloperDoc(content);
+      onChange(result);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '문서 다듬기에 실패했습니다.');
+    } finally {
+      setIsPolishingDoc(false);
     }
   };
 
@@ -244,17 +274,62 @@ export function NoteEditor({ title, content, onChange, onSave, onImproveReadabil
               type="button"
               className="btn-improve"
               onClick={handleImprove}
-              disabled={isImproving || !content.trim()}
+              disabled={aiBusy || !content.trim()}
               title="AI가 노트를 읽기 좋게 정리합니다 (Few-shot)"
             >
               {isImproving ? '변환 중…' : '가독성 변환'}
             </button>
           )}
-          <button type="button" className="btn-save" onClick={onSave}>
-            저장 <kbd className="shortcut-hint">⌘S</kbd>
+          {onPolishDeveloperDoc && (
+            <button
+              type="button"
+              className="btn-doc-polish"
+              onClick={handlePolishDoc}
+              disabled={aiBusy || !content.trim()}
+              title="README·API 문서처럼 문장을 문서체로 다듬습니다 (Few-shot)"
+            >
+              {isPolishingDoc ? '다듬는 중…' : '문서 다듬기'}
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn-save"
+            onClick={() => void onSave()}
+            disabled={isSaving}
+            aria-busy={isSaving}
+            title={isSaving ? '저장 중…' : '저장 (⌘S)'}
+          >
+            {isSaving ? (
+              '저장 중…'
+            ) : (
+              <>
+                저장 <kbd className="shortcut-hint">⌘S</kbd>
+              </>
+            )}
           </button>
         </div>
       </header>
+      {onPolishDeveloperDoc && (
+        <details className="doc-polish-example" defaultOpen>
+          <summary>개발 문서 다듬기 예시 (테스트 문장 전·후)</summary>
+          <p className="doc-polish-example-hint">
+            아래는 프롬프트 few-shot과 동일한 예시입니다. 실제 노트에 적용하면 Gemini가 비슷한
+            톤으로 다듬습니다.
+          </p>
+          <div className="doc-polish-example-grid">
+            <div className="doc-polish-example-col">
+              <span className="doc-polish-example-label">다듬기 전</span>
+              <pre className="doc-polish-example-pre">{DOC_POLISH_PREVIEW_BEFORE}</pre>
+            </div>
+            <div className="doc-polish-example-col">
+              <span className="doc-polish-example-label">다듬은 뒤 (예시)</span>
+              <div className="doc-polish-example-after">
+                <MarkdownPreview content={DOC_POLISH_PREVIEW_AFTER} />
+              </div>
+            </div>
+          </div>
+        </details>
+      )}
       {error && (
         <div className="editor-error" role="alert">
           {error}

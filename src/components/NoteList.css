@@ -5,6 +5,10 @@
   overflow-y: auto;
   flex: 1;
 }
+.note-list--busy {
+  opacity: 0.65;
+  pointer-events: none;
+}
 .note-list li {
   display: flex;
   align-items: center;

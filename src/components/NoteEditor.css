@@ -60,6 +60,91 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+.btn-doc-polish {
+  padding: 8px 14px;
+  background: #285e61;
+  color: #e6fffa;
+  border: 1px solid #2c7a7b;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.btn-doc-polish:hover:not(:disabled) {
+  background: #2c7a7b;
+}
+.btn-doc-polish:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.doc-polish-example {
+  flex-shrink: 0;
+  padding: 0 20px 10px;
+  border-bottom: 1px solid #2d2d2d;
+  font-size: 0.8125rem;
+  color: #b0b0b0;
+}
+.doc-polish-example > summary {
+  cursor: pointer;
+  padding: 8px 0 4px;
+  font-weight: 600;
+  color: #c8e6c9;
+  list-style-position: outside;
+}
+.doc-polish-example-hint {
+  margin: 0 0 10px;
+  line-height: 1.45;
+  opacity: 0.9;
+}
+.doc-polish-example-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-height: min(55vh, 420px);
+}
+@media (max-width: 720px) {
+  .doc-polish-example-grid {
+    grid-template-columns: 1fr;
+    max-height: none;
+  }
+}
+.doc-polish-example-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.doc-polish-example-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #888;
+}
+.doc-polish-example-pre {
+  margin: 0;
+  padding: 10px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #ddd;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: auto;
+  max-height: min(50vh, 380px);
+}
+.doc-polish-example-after {
+  padding: 8px 10px;
+  background: #1a1a1a;
+  border: 1px solid #2c7a7b;
+  border-radius: 6px;
+  overflow: auto;
+  max-height: min(50vh, 380px);
+  font-size: 0.85rem;
+}
+.doc-polish-example-after .markdown-preview {
+  font-size: inherit;
+}
 .editor-error {
   padding: 8px 20px;
   background: rgba(220, 53, 69, 0.15);
@@ -76,8 +161,12 @@
   cursor: pointer;
   font-size: 0.9rem;
 }
-.btn-save:hover {
+.btn-save:hover:not(:disabled) {
   background: #0b5ed7;
+}
+.btn-save:disabled {
+  opacity: 0.75;
+  cursor: wait;
 }
 .shortcut-hint {
   margin-left: 6px;
