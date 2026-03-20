@@ -81,6 +81,7 @@ export function NoteEditor({
   const [isPolishingDoc, setIsPolishingDoc] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [splitView, setSplitView] = useState(false);
+  const [docPolishExampleOpen, setDocPolishExampleOpen] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const selectionRef = useRef<{ start: number; end: number } | null>(null);
 
@@ -310,7 +311,11 @@ export function NoteEditor({
         </div>
       </header>
       {onPolishDeveloperDoc && (
-        <details className="doc-polish-example" defaultOpen>
+        <details
+          className="doc-polish-example"
+          open={docPolishExampleOpen}
+          onToggle={(e) => setDocPolishExampleOpen(e.currentTarget.open)}
+        >
           <summary>개발 문서 다듬기 예시 (테스트 문장 전·후)</summary>
           <p className="doc-polish-example-hint">
             아래는 프롬프트 few-shot과 동일한 예시입니다. 실제 노트에 적용하면 Gemini가 비슷한
