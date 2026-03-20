@@ -4,6 +4,7 @@
  */
 const path = require('path');
 const fs = require('fs');
+const { execFileSync } = require('child_process');
 const sharp = require('sharp');
 
 const root = path.join(__dirname, '..');
@@ -19,6 +20,19 @@ async function main() {
   await sharp(svgPath).resize(1024, 1024).png().toFile(outPng);
   fs.copyFileSync(outPng, outFavicon);
   console.log('Wrote', outPng, 'and', outFavicon);
+
+  if (process.platform === 'darwin') {
+    const sh = path.join(root, 'scripts', 'make-icns.sh');
+    try {
+      execFileSync('/bin/bash', [sh], { stdio: 'inherit', cwd: root });
+    } catch {
+      console.warn(
+        'make-icns.sh failed (e.g. sandbox). In Terminal run: bash scripts/make-icns.sh'
+      );
+    }
+  } else {
+    console.log('Skip .icns (macOS only; needed for Finder icon in packaged .app)');
+  }
 }
 
 main().catch((e) => {

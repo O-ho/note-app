@@ -39,8 +39,9 @@ npm run electron:dev    # Vite + Electron 동시 실행
 ## 앱 아이콘
 
 - 원본 벡터: `build/icon-source.svg` (iOS 스쿼클 느낌의 둥근 틸 배경 + 작은 흰 노트)
-- PNG 생성: `npm run render-icon` → `build/icon.png`와 `public/favicon.png` (1024×1024) 갱신. SVG만 수정한 뒤 이 명령을 실행하면 됩니다.
-- `package.json`의 `build.icon`은 `build/icon.png`를 가리킵니다.
+- **`npm run render-icon`** (맥에서): `sharp`로 `build/icon.png`·`public/favicon.png` 생성 후, `iconutil`로 **`build/icon.icns`** 까지 만듭니다.
+- **패키징(macOS):** `build.mac.icon` → `build/icon.icns`. **Finder / 응용 프로그램**에 보이는 아이콘은 **`release/…/Note App.app`** 처럼 **electron-builder로 만든 .app** 기준입니다.
+- **`npm run electron:dev`로만 실행할 때:** 실제로 뜨는 것은 `node_modules/electron` 안의 **Electron.app** 이라, **Finder에서 보면 Electron 기본 아이콘**인 것이 정상입니다. Dock에는 `app.dock.setIcon`으로 우리 아이콘이 보일 수 있습니다.
 
 ## 구조
 
