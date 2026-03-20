@@ -36,6 +36,12 @@ npm run electron:dev    # Vite + Electron 동시 실행
   - Windows: `%APPDATA%/note-app/notes`
   - Linux: `~/.config/note-app/notes`
 
+## 앱 아이콘
+
+- 원본 벡터: `build/icon-source.svg` (iOS 스쿼클 느낌의 둥근 틸 배경 + 작은 흰 노트)
+- PNG 생성: `npm run render-icon` → `build/icon.png`와 `public/favicon.png` (1024×1024) 갱신. SVG만 수정한 뒤 이 명령을 실행하면 됩니다.
+- `package.json`의 `build.icon`은 `build/icon.png`를 가리킵니다.
+
 ## 구조
 
 - `electron/main.ts` — 메인 프로세스, 창 생성 및 노트 파일 읽기/쓰기 IPC

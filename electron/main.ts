@@ -171,10 +171,16 @@ function registerIpcHandlers() {
   });
 }
 
+function resolveWindowIcon(): string | undefined {
+  const candidate = path.join(__dirname, '../build/icon.png');
+  return fs.existsSync(candidate) ? candidate : undefined;
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1000,
     height: 700,
+    icon: resolveWindowIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -194,6 +200,17 @@ function createWindow() {
 
 app.whenReady().then(() => {
   registerIpcHandlers();
+  /** macOS 개발 모드: 실행 바이너리는 Electron이라 Dock 기본 아이콘 → 커스텀으로 맞춤 */
+  if (!app.isPackaged && process.platform === 'darwin' && app.dock) {
+    const icon = resolveWindowIcon();
+    if (icon) {
+      try {
+        app.dock.setIcon(icon);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
   createWindow();
 });
 app.on('window-all-closed', () => app.quit());

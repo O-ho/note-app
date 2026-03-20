@@ -2,7 +2,7 @@ node_modules
 dist
 dist-electron
 release
-build
+# build/ — 아이콘·entitlements 등 electron-builder 리소스 (release가 패키징 출력)
 
 # IDE
 .idea
