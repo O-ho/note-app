@@ -56,6 +56,7 @@ const AUTO_CLOSE_PAIRS: Record<string, string> = {
 const AUTO_CLOSE_VALUES = new Set(Object.values(AUTO_CLOSE_PAIRS));
 
 type Props = {
+  noteId: string;
   title: string;
   content: string;
   onChange: (value: string) => void;
@@ -63,12 +64,21 @@ type Props = {
   /** 디스크 저장 중(자동·수동·노트 전환 등) */
   isSaving?: boolean;
   /** Few-shot 기반 가독성 변환 (없으면 버튼 비표시) */
-  onImproveReadability?: (text: string) => Promise<string>;
+  onImproveReadability?: (text: string, option: TransformOption) => Promise<string>;
   /** 개발 문서체 다듬기 (README·API 문서 등, 없으면 버튼 비표시) */
-  onPolishDeveloperDoc?: (text: string) => Promise<string>;
+  onPolishDeveloperDoc?: (text: string, option: TransformOption) => Promise<string>;
+};
+
+type TransformOption = 'balanced' | 'strong' | 'concise';
+
+type LastAiTransform = {
+  mode: 'readability' | 'docPolish';
+  source: string;
+  option: TransformOption;
 };
 
 export function NoteEditor({
+  noteId,
   title,
   content,
   onChange,
@@ -82,8 +92,13 @@ export function NoteEditor({
   const [error, setError] = useState<string | null>(null);
   const [splitView, setSplitView] = useState(false);
   const [docPolishExampleOpen, setDocPolishExampleOpen] = useState(false);
+  const [lastAiTransformByNote, setLastAiTransformByNote] = useState<Record<string, LastAiTransform>>({});
+  const [lastSourceOpenByNote, setLastSourceOpenByNote] = useState<Record<string, boolean>>({});
+  const [transformOption, setTransformOption] = useState<TransformOption>('balanced');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const selectionRef = useRef<{ start: number; end: number } | null>(null);
+  const lastAiTransform = lastAiTransformByNote[noteId] ?? null;
+  const lastSourceOpen = lastSourceOpenByNote[noteId] ?? false;
 
   useLayoutEffect(() => {
     const sel = selectionRef.current;
@@ -231,10 +246,16 @@ export function NoteEditor({
 
   const handleImprove = async () => {
     if (!content.trim() || !onImproveReadability) return;
+    const source = content;
     setError(null);
     setIsImproving(true);
     try {
-      const result = await onImproveReadability(content);
+      const result = await onImproveReadability(source, transformOption);
+      setLastAiTransformByNote((prev) => ({
+        ...prev,
+        [noteId]: { mode: 'readability', source, option: transformOption },
+      }));
+      setLastSourceOpenByNote((prev) => ({ ...prev, [noteId]: true }));
       onChange(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : '가독성 변환에 실패했습니다.');
@@ -245,13 +266,63 @@ export function NoteEditor({
 
   const handlePolishDoc = async () => {
     if (!content.trim() || !onPolishDeveloperDoc) return;
+    const source = content;
     setError(null);
     setIsPolishingDoc(true);
     try {
-      const result = await onPolishDeveloperDoc(content);
+      const result = await onPolishDeveloperDoc(source, transformOption);
+      setLastAiTransformByNote((prev) => ({
+        ...prev,
+        [noteId]: { mode: 'docPolish', source, option: transformOption },
+      }));
+      setLastSourceOpenByNote((prev) => ({ ...prev, [noteId]: true }));
       onChange(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : '문서 다듬기에 실패했습니다.');
+    } finally {
+      setIsPolishingDoc(false);
+    }
+  };
+
+  const handleRetryTransform = async () => {
+    if (!lastAiTransform || aiBusy) return;
+    setError(null);
+    if (lastAiTransform.mode === 'readability') {
+      if (!onImproveReadability) return;
+      setIsImproving(true);
+      try {
+        const result = await onImproveReadability(lastAiTransform.source, lastAiTransform.option);
+        setLastAiTransformByNote((prev) => ({
+          ...prev,
+          [noteId]: {
+            mode: 'readability',
+            source: lastAiTransform.source,
+            option: lastAiTransform.option,
+          },
+        }));
+        onChange(result);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : '다시 변환에 실패했습니다.');
+      } finally {
+        setIsImproving(false);
+      }
+      return;
+    }
+    if (!onPolishDeveloperDoc) return;
+    setIsPolishingDoc(true);
+    try {
+      const result = await onPolishDeveloperDoc(lastAiTransform.source, lastAiTransform.option);
+      setLastAiTransformByNote((prev) => ({
+        ...prev,
+        [noteId]: {
+          mode: 'docPolish',
+          source: lastAiTransform.source,
+          option: lastAiTransform.option,
+        },
+      }));
+      onChange(result);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '다시 변환에 실패했습니다.');
     } finally {
       setIsPolishingDoc(false);
     }
@@ -262,6 +333,19 @@ export function NoteEditor({
       <header className="editor-header">
         <h2 className="editor-title">{title}</h2>
         <div className="editor-actions">
+          <label className="transform-option">
+            <span>강도</span>
+            <select
+              value={transformOption}
+              onChange={(e) => setTransformOption(e.target.value as TransformOption)}
+              disabled={aiBusy}
+              title="AI 변환 강도 선택"
+            >
+              <option value="balanced">균형</option>
+              <option value="strong">강하게</option>
+              <option value="concise">간결</option>
+            </select>
+          </label>
           <button
             type="button"
             className={`btn-split ${splitView ? 'is-active' : ''}`}
@@ -333,6 +417,42 @@ export function NoteEditor({
               </div>
             </div>
           </div>
+        </details>
+      )}
+      {lastAiTransform && (
+        <details
+          className="ai-source-panel"
+          open={lastSourceOpen}
+          onToggle={(e) => {
+            const isOpen = e.currentTarget.open;
+            setLastSourceOpenByNote((prev) => ({
+              ...prev,
+              [noteId]: isOpen,
+            }));
+          }}
+        >
+          <summary>원문 확인</summary>
+          <div className="ai-source-actions">
+            <span className="ai-source-meta">
+              {lastAiTransform.mode === 'readability' ? '가독성 변환' : '문서 다듬기'} 원문
+              {' · '}
+              {lastAiTransform.option === 'balanced'
+                ? '균형'
+                : lastAiTransform.option === 'strong'
+                  ? '강하게'
+                  : '간결'}
+            </span>
+            <button
+              type="button"
+              className="btn-retry-transform"
+              onClick={handleRetryTransform}
+              disabled={aiBusy}
+              title="같은 원문으로 새롭게 다시 변환"
+            >
+              {aiBusy ? '재변환 중…' : '다시 변환'}
+            </button>
+          </div>
+          <pre className="ai-source-pre">{lastAiTransform.source}</pre>
         </details>
       )}
       {error && (

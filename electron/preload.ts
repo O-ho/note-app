@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 export type NoteItem = { id: string; title: string };
+export type TransformOption = 'balanced' | 'strong' | 'concise';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   notes: {
@@ -12,10 +13,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     delete: (filename: string): Promise<void> => ipcRenderer.invoke('notes:delete', filename),
   },
   ai: {
-    improveReadability: (text: string): Promise<string> =>
-      ipcRenderer.invoke('ai:improveReadability', text),
-    polishDeveloperDoc: (text: string): Promise<string> =>
-      ipcRenderer.invoke('ai:polishDeveloperDoc', text),
+    improveReadability: (text: string, option: TransformOption = 'balanced'): Promise<string> =>
+      ipcRenderer.invoke('ai:improveReadability', text, option),
+    polishDeveloperDoc: (text: string, option: TransformOption = 'balanced'): Promise<string> =>
+      ipcRenderer.invoke('ai:polishDeveloperDoc', text, option),
   },
   app: {
     getSettings: (): Promise<{ geminiApiKey?: string }> => ipcRenderer.invoke('app:getSettings'),

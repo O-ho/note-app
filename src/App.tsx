@@ -43,9 +43,16 @@ export default function App() {
   const currentRef = useRef(current);
   const contentRef = useRef(content);
   const skipDebounceAfterLoadRef = useRef(false);
+  /** 노트 id별 저장 세대 — 삭제·제목 변경 시 올려 진행 중인 persist가 파일을 다시 만들지 않게 함 */
+  const noteSaveGenRef = useRef<Map<string, number>>(new Map());
 
   currentRef.current = current;
   contentRef.current = content;
+
+  const bumpNoteSaveGeneration = useCallback((noteId: string) => {
+    const m = noteSaveGenRef.current;
+    m.set(noteId, (m.get(noteId) ?? 0) + 1);
+  }, []);
 
   const clearAutoSaveTimer = () => {
     if (autoSaveTimerRef.current !== null) {
@@ -110,15 +117,21 @@ export default function App() {
         if (!hasNotesAPI) return false;
         const parsedTitle = getTitleFromContent(body) || note.title;
         const titleChanged = normalizeTitle(parsedTitle) !== normalizeTitle(note.title);
+        const genAtStart = noteSaveGenRef.current.get(note.id) ?? 0;
+        const isStale = () => (noteSaveGenRef.current.get(note.id) ?? 0) !== genAtStart;
 
         try {
           if (titleChanged) {
             const created = await window.electronAPI!.notes.create(parsedTitle);
+            if (isStale()) return false;
             await window.electronAPI!.notes.save(created.id, body);
+            if (isStale()) return false;
+            bumpNoteSaveGeneration(note.id);
             await window.electronAPI!.notes.delete(note.id);
             setCurrent({ id: created.id, title: parsedTitle });
           } else {
             const updated = await window.electronAPI!.notes.save(note.id, body);
+            if (isStale()) return false;
             setCurrent(updated);
           }
           await loadList();
@@ -135,7 +148,7 @@ export default function App() {
         }
       }
     },
-    [loadList, scheduleSaveIndicatorHide]
+    [bumpNoteSaveGeneration, loadList, scheduleSaveIndicatorHide]
   );
 
   /** setContent 전에 ref 동기화 — 저장/노트 전환 시 최신 본문 보장 */
@@ -260,19 +273,23 @@ export default function App() {
   const deleteNote = useCallback(
     async (id: string) => {
       if (!hasNotesAPI) return;
+      // 삭제 직전에 올려 두면, 대기 중이던 persistNote의 save가 끝나도 setCurrent/loadList로 파일이 부활하지 않음
+      bumpNoteSaveGeneration(id);
       clearAutoSaveTimer();
+      if (current?.id === id) {
+        currentRef.current = null;
+        contentRef.current = '';
+        setCurrent(null);
+        updateContent('');
+      }
       try {
         await window.electronAPI!.notes.delete(id);
-        if (current?.id === id) {
-          setCurrent(null);
-          updateContent('');
-        }
         await loadList();
       } catch (e) {
         console.error(e);
       }
     },
-    [current?.id, loadList, updateContent]
+    [bumpNoteSaveGeneration, current?.id, loadList, updateContent]
   );
 
   if (!hasNotesAPI) {
@@ -332,6 +349,7 @@ export default function App() {
       <main className="editor-area">
         {current ? (
           <NoteEditor
+            noteId={current.id}
             title={getTitleFromContent(content) || current.title}
             content={content}
             onChange={updateContent}
@@ -339,12 +357,12 @@ export default function App() {
             isSaving={isSaving}
             onImproveReadability={
               window.electronAPI?.ai?.improveReadability
-                ? (text) => window.electronAPI!.ai!.improveReadability(text)
+                ? (text, option) => window.electronAPI!.ai!.improveReadability(text, option)
                 : undefined
             }
             onPolishDeveloperDoc={
               window.electronAPI?.ai?.polishDeveloperDoc
-                ? (text) => window.electronAPI!.ai!.polishDeveloperDoc(text)
+                ? (text, option) => window.electronAPI!.ai!.polishDeveloperDoc(text, option)
                 : undefined
             }
           />

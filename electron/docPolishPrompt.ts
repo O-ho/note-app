@@ -13,6 +13,18 @@ export const DOC_POLISH_SYSTEM_PROMPT = `당신은 소프트웨어 개발 문서
 - 입력과 동일한 언어를 유지합니다(한국어 입력 → 한국어, 영어 입력 → 영어).
 - 본문에 표·목록·단락 구분 등 서식 요청이 있으면 정보를 유지한 채 그 요청을 우선 반영합니다.`;
 
+export type TransformOption = 'balanced' | 'strong' | 'concise';
+
+function optionPrompt(option: TransformOption): string {
+  if (option === 'strong') {
+    return '추가 지침: 문서 품질 개선을 강하게 적용하세요. 섹션 구조화, 문장 재작성, 중복 제거를 적극 수행하되 기술 사실은 바꾸지 마세요.';
+  }
+  if (option === 'concise') {
+    return '추가 지침: 같은 정보를 더 짧고 밀도 높게 전달하세요. 불필요한 완곡 표현을 줄이고 핵심을 빠르게 파악할 수 있게 작성하세요.';
+  }
+  return '추가 지침: 기본 균형 모드입니다. 문서체 품질과 원문 충실도를 균형 있게 유지하세요.';
+}
+
 const FEW_SHOT_1 = {
   user: `## 결제 웹훅 (임시정리)
 
@@ -55,12 +67,16 @@ this endpoint basically used for fetching user stuff when u already logged in, m
 Returns data for the authenticated user. The client must be logged in before calling this endpoint. Responses may be slower when the payload is large.`,
 };
 
-export function buildGeminiDocPolishRequest(userText: string): {
+export function buildGeminiDocPolishRequest(
+  userText: string,
+  option: TransformOption = 'balanced'
+): {
   systemInstruction: { parts: Array<{ text: string }> };
   contents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }>;
 } {
+  const systemText = `${DOC_POLISH_SYSTEM_PROMPT}\n\n${optionPrompt(option)}`;
   return {
-    systemInstruction: { parts: [{ text: DOC_POLISH_SYSTEM_PROMPT }] },
+    systemInstruction: { parts: [{ text: systemText }] },
     contents: [
       { role: 'user', parts: [{ text: FEW_SHOT_1.user }] },
       { role: 'model', parts: [{ text: FEW_SHOT_1.assistant }] },

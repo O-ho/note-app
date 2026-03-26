@@ -10,6 +10,19 @@ import fs from 'fs';
 import { buildGeminiReadabilityRequest } from './readabilityPrompt';
 import { buildGeminiDocPolishRequest } from './docPolishPrompt';
 
+type TransformOption = 'balanced' | 'strong' | 'concise';
+
+function normalizeTransformOption(option?: string): TransformOption {
+  if (option === 'strong' || option === 'concise' || option === 'balanced') return option;
+  return 'balanced';
+}
+
+function temperatureByOption(option: TransformOption, base: number): number {
+  if (option === 'strong') return Math.min(0.6, base + 0.15);
+  if (option === 'concise') return Math.max(0.1, base - 0.1);
+  return base;
+}
+
 function getNotesDir(): string {
   return path.join(app.getPath('userData'), 'notes');
 }
@@ -112,63 +125,71 @@ function registerIpcHandlers() {
   });
 
   // AI 가독성 변환 (Few-shot 프롬프트 사용, Gemini API 무료 티어)
-  ipcMain.handle('ai:improveReadability', async (_e: IpcMainInvokeEvent, text: string): Promise<string> => {
-    const apiKey = process.env.GEMINI_API_KEY || readSettings().geminiApiKey;
-    if (!apiKey?.trim()) {
-      throw new Error('설정에서 Gemini API 키를 입력해 주세요.');
-    }
-    const { systemInstruction, contents } = buildGeminiReadabilityRequest(text);
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+  ipcMain.handle(
+    'ai:improveReadability',
+    async (_e: IpcMainInvokeEvent, text: string, optionRaw?: string): Promise<string> => {
+      const option = normalizeTransformOption(optionRaw);
+      const apiKey = process.env.GEMINI_API_KEY || readSettings().geminiApiKey;
+      if (!apiKey?.trim()) {
+        throw new Error('설정에서 Gemini API 키를 입력해 주세요.');
+      }
+      const { systemInstruction, contents } = buildGeminiReadabilityRequest(text, option);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
         system_instruction: systemInstruction,
         contents,
-        generationConfig: { temperature: 0.3 },
-      }),
-    });
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Gemini API 오류 (${res.status}): ${err}`);
+        generationConfig: { temperature: temperatureByOption(option, 0.3) },
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Gemini API 오류 (${res.status}): ${err}`);
+      }
+      const data = (await res.json()) as {
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      };
+      const parts = data.candidates?.[0]?.content?.parts;
+      const content = parts?.[0]?.text?.trim();
+      if (content == null) throw new Error('API 응답에 내용이 없습니다.');
+      return content;
     }
-    const data = (await res.json()) as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    };
-    const parts = data.candidates?.[0]?.content?.parts;
-    const content = parts?.[0]?.text?.trim();
-    if (content == null) throw new Error('API 응답에 내용이 없습니다.');
-    return content;
-  });
+  );
 
-  ipcMain.handle('ai:polishDeveloperDoc', async (_e: IpcMainInvokeEvent, text: string): Promise<string> => {
-    const apiKey = process.env.GEMINI_API_KEY || readSettings().geminiApiKey;
-    if (!apiKey?.trim()) {
-      throw new Error('설정에서 Gemini API 키를 입력해 주세요.');
-    }
-    const { systemInstruction, contents } = buildGeminiDocPolishRequest(text);
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+  ipcMain.handle(
+    'ai:polishDeveloperDoc',
+    async (_e: IpcMainInvokeEvent, text: string, optionRaw?: string): Promise<string> => {
+      const option = normalizeTransformOption(optionRaw);
+      const apiKey = process.env.GEMINI_API_KEY || readSettings().geminiApiKey;
+      if (!apiKey?.trim()) {
+        throw new Error('설정에서 Gemini API 키를 입력해 주세요.');
+      }
+      const { systemInstruction, contents } = buildGeminiDocPolishRequest(text, option);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
         system_instruction: systemInstruction,
         contents,
-        generationConfig: { temperature: 0.25 },
-      }),
-    });
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Gemini API 오류 (${res.status}): ${err}`);
+        generationConfig: { temperature: temperatureByOption(option, 0.25) },
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Gemini API 오류 (${res.status}): ${err}`);
+      }
+      const data = (await res.json()) as {
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      };
+      const parts = data.candidates?.[0]?.content?.parts;
+      const out = parts?.[0]?.text?.trim();
+      if (out == null) throw new Error('API 응답에 내용이 없습니다.');
+      return out;
     }
-    const data = (await res.json()) as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    };
-    const parts = data.candidates?.[0]?.content?.parts;
-    const out = parts?.[0]?.text?.trim();
-    if (out == null) throw new Error('API 응답에 내용이 없습니다.');
-    return out;
-  });
+  );
 }
 
 function resolveWindowIcon(): string | undefined {
@@ -187,7 +208,6 @@ function createWindow() {
       contextIsolation: true,
     },
   });
-
   if (!app.isPackaged && process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else if (!app.isPackaged) {

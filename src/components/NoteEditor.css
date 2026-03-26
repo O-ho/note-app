@@ -27,6 +27,26 @@
   align-items: center;
   gap: 8px;
 }
+.transform-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #9aa5b1;
+  font-size: 0.8rem;
+}
+.transform-option select {
+  height: 34px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid #4a5568;
+  background: #1f2937;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+.transform-option select:disabled {
+  opacity: 0.65;
+}
 .btn-split {
   padding: 8px 14px;
   background: #2d3748;
@@ -172,6 +192,76 @@
   height: auto;
   min-height: 0;
   background: transparent;
+}
+.ai-source-panel {
+  flex-shrink: 0;
+  padding: 4px 20px 8px;
+  border-bottom: 1px solid #2d2d2d;
+  font-size: 0.8125rem;
+  color: #b0b0b0;
+}
+.ai-source-panel > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 8px 0 4px;
+  margin: 0;
+  font-weight: 600;
+  color: #9ec5fe;
+}
+.ai-source-panel > summary::-webkit-details-marker {
+  display: none;
+}
+.ai-source-panel > summary::before {
+  content: '▸';
+  font-size: 0.85em;
+  opacity: 0.9;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+.ai-source-panel[open] > summary::before {
+  transform: rotate(90deg);
+}
+.ai-source-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.ai-source-meta {
+  color: #9aa5b1;
+}
+.btn-retry-transform {
+  padding: 6px 10px;
+  border: 1px solid #3d5a80;
+  border-radius: 6px;
+  background: #243b53;
+  color: #dbeafe;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.btn-retry-transform:hover:not(:disabled) {
+  background: #2d4b6f;
+}
+.btn-retry-transform:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.ai-source-pre {
+  margin: 0;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #334e68;
+  background: #102a43;
+  color: #d9e2ec;
+  max-height: min(28vh, 220px);
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.45;
 }
 .editor-error {
   padding: 8px 20px;
