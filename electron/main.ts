@@ -23,6 +23,61 @@ function temperatureByOption(option: TransformOption, base: number): number {
   return base;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status === 503 || status >= 500;
+}
+
+async function callGeminiWithRetry(url: string, body: unknown): Promise<unknown> {
+  const maxAttempts = 4;
+  let lastStatus = 0;
+  let lastErrorBody = '';
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) return (await res.json()) as unknown;
+
+    lastStatus = res.status;
+    lastErrorBody = await res.text();
+
+    if (!isRetryableStatus(res.status) || attempt === maxAttempts) {
+      break;
+    }
+
+    const retryAfterHeader = res.headers.get('retry-after');
+    const retryAfterSec = retryAfterHeader ? Number.parseInt(retryAfterHeader, 10) : NaN;
+    const retryAfterMs = Number.isFinite(retryAfterSec) ? retryAfterSec * 1000 : 0;
+    const baseDelayMs = 600 * 2 ** (attempt - 1);
+    const jitterMs = Math.floor(Math.random() * 350);
+    const delayMs = Math.max(retryAfterMs, baseDelayMs + jitterMs);
+    await sleep(delayMs);
+  }
+
+  if (lastStatus === 503) {
+    throw new Error('Gemini 서버가 혼잡합니다. 잠시 후 다시 시도해 주세요. (503)');
+  }
+  if (lastStatus === 429) {
+    throw new Error('요청 한도에 도달했습니다. 잠시 후 다시 시도해 주세요. (429)');
+  }
+  throw new Error(`Gemini API 오류 (${lastStatus}): ${lastErrorBody}`);
+}
+
+function extractGeminiText(data: unknown): string {
+  const content = (data as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> })
+    .candidates?.[0]?.content?.parts?.[0]?.text
+    ?.trim();
+  if (content == null) throw new Error('API 응답에 내용이 없습니다.');
+  return content;
+}
+
 function getNotesDir(): string {
   return path.join(app.getPath('userData'), 'notes');
 }
@@ -135,26 +190,12 @@ function registerIpcHandlers() {
       }
       const { systemInstruction, contents } = buildGeminiReadabilityRequest(text, option);
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const data = await callGeminiWithRetry(url, {
         system_instruction: systemInstruction,
         contents,
         generationConfig: { temperature: temperatureByOption(option, 0.3) },
-        }),
       });
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`Gemini API 오류 (${res.status}): ${err}`);
-      }
-      const data = (await res.json()) as {
-        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-      };
-      const parts = data.candidates?.[0]?.content?.parts;
-      const content = parts?.[0]?.text?.trim();
-      if (content == null) throw new Error('API 응답에 내용이 없습니다.');
-      return content;
+      return extractGeminiText(data);
     }
   );
 
@@ -168,26 +209,12 @@ function registerIpcHandlers() {
       }
       const { systemInstruction, contents } = buildGeminiDocPolishRequest(text, option);
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const data = await callGeminiWithRetry(url, {
         system_instruction: systemInstruction,
         contents,
         generationConfig: { temperature: temperatureByOption(option, 0.25) },
-        }),
       });
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`Gemini API 오류 (${res.status}): ${err}`);
-      }
-      const data = (await res.json()) as {
-        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-      };
-      const parts = data.candidates?.[0]?.content?.parts;
-      const out = parts?.[0]?.text?.trim();
-      if (out == null) throw new Error('API 응답에 내용이 없습니다.');
-      return out;
+      return extractGeminiText(data);
     }
   );
 }
